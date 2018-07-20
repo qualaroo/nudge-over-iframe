@@ -1,10 +1,16 @@
 # Qualaroo over iFrame
 
+## Get Started
+
+Open `sample.html` in your browser. Open Developer Tools to see event log messages.
+
 ## Making API Calls
 
 All Qualaroo Javascript API methods are available via sending a messsage to the frame.
 
 When loading the iframe a unique ID should be provided via the `cid` URL param. This ID will be included in all message payloads back to the parent page (see "Events" below).
+
+Optionally, you can also pass a `lang` param which will be used to select the correct survey translation (when available.)
 
 Message format:
 

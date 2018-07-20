@@ -1,0 +1,109 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+  <style>
+    /* Place custom CSS here */
+  </style>
+  <script>
+    (function(){
+      'use strict';
+      window._kiq = window._kiq || [];
+      window._kiq.push(['disableAuto']);
+
+      // This prevents the default Qualaroo resize events from firing which causes
+      // weird issues when loaded within an iframe.
+      // https://developer.mozilla.org/en-US/docs/Web/API/Event/stopImmediatePropagation
+      window.addEventListener('resize', function(event){
+        event.stopImmediatePropagation();
+      });
+
+      function getParam (param) {
+        var match = document.location.search.match(new RegExp(param + '=([^&]*)'));
+        if(match) return match[1];
+      }
+
+      var lastEvent,
+          channelID = getParam('cid'),
+          lang      = getParam('lang');
+
+      if(lang) {
+        document.documentElement.setAttribute('lang', lang);
+      }
+
+      function postMessage () {
+        var args = [].slice.call( arguments ),
+            sig = args.join();
+
+        if(lastEvent !== sig) {
+          parent.postMessage( [ channelID ].concat( args ), '*' );
+          lastEvent = sig;
+        }
+
+      }
+
+      function addEventHandler ( event, callback ) {
+        window._kiq.push( [ 'eventHandler', event, callback ] );
+      }
+
+      function calculateDimensions () {
+        var container = document.getElementById('qual_ol'),
+            dims = { width: 0, height: 0 };
+
+        if( container ) {
+          dims.width = container.offsetWidth;
+          dims.height = container.offsetHeight;
+        }
+
+        return dims;
+      }
+
+      if( window.parent && window.parent.postMessage ) {
+        window._kiq.push( function(){
+          postMessage( 'roo:event:ready' );
+        } );
+
+        addEventHandler( 'show', function( survey_id, screen_id ){
+          postMessage( 'roo:event:show', survey_id, screen_id );
+        } );
+
+        addEventHandler( 'close', function( survey_id ){
+          postMessage( 'roo:event:close', survey_id );
+        } );
+
+        addEventHandler( 'nodeRendered', function( survey_id, screen_id, height ){
+          var dims = calculateDimensions();
+          postMessage( 'roo:event:nodeRendered', survey_id, screen_id, dims.width, dims.height );
+        } );
+
+        addEventHandler( 'submit', function( answers, survey_id, screen_id ){
+          postMessage( 'roo:event:submit', answers, survey_id, screen_id );
+        } );
+
+        addEventHandler( 'noTargetMatch', function(){
+          postMessage( 'roo:event:noTargetMatch' );
+        } );
+
+        window.addEventListener( 'message', function(event){
+          if( event && Array.isArray( event.data ) ) {
+            event.data[0] = event.data[0].replace( 'roo:', '' );
+            window._kiq.push( event.data );
+          }
+
+        }, false );
+
+      }
+
+    })();
+  </script>
+
+  <!-- 
+    Load Qualaroo client from our CDN
+
+    TODO: This is for example purposes only. Replace with your actual site JS from
+    the Qualaroo Dashboard.
+  -->
+  <script src="https://s3.amazonaws.com/ki.js/39241/gvK.js"></script>
+</body>
+</html>

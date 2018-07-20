@@ -1,0 +1,112 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Qualaroo over iFrame</title>
+  <style>
+    #roo-frame {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      background: lightgrey;
+    }
+  </style>
+</head>
+<body>
+  <h1>Qualaroo over iFrame</h1>
+
+  <p><a href="https://github.com/qualaroo/over-iframe">https://github.com/qualaroo/over-iframe</a></p>
+
+  <!--
+    Load the hosted Qualaroo frame
+    TODO: Generate a unique CID and pass correct page lang
+  -->
+  <iframe src="frame.html?cid=XXXXXXXXXXXXXXXX&lang=en" id="roo-frame" frameborder="0" style="width: 900px; height: 900px; visibility: hidden;"></iframe>
+
+  <script>
+    var frame = document.getElementById( 'roo-frame' );
+
+    // Helper method that sends all arguments passed as an array via postMessage
+    // TODO: Pass correct origin
+    function postMessage () {
+      frame.contentWindow.postMessage( [].slice.call( arguments ), '*' );
+    }
+
+    function resizeIframe ( width, height ) {
+      frame.style.visibility = 'visible';
+      frame.style.width = width + 90;
+      frame.style.height = height + 60;
+    }
+
+    function closeIframe () {
+      frame.style.visibility = 'hidden';
+    }
+
+    // Listen for message events
+    // TODO: Add validation of event.origin
+    window.addEventListener( 'message', function( event ) {
+      var channelID = event.data[ 0 ],
+          eventName = event.data[ 1 ],
+          args = event.data.slice( 2 );
+
+      console.log('Received from frame:', channelID, eventName, args)
+
+      // TODO: Validate channel ID
+      if ( channelID !== 'XXXXXXXXXXXXXXXX' ) {
+        return console.warn('Invalid Channel ID');
+      }
+
+      switch ( eventName ) {
+        // Qualaroo is ready. This is where you should initialize the page location and send
+        // us any identities or custom properties.
+        case 'roo:event:ready':
+          // EXAMPLE: Optionally pass the parent page location details if targeting via URL.
+          // postMessage( 'roo:pageChanged', {
+          //   host:     document.location.host,
+          //   pathname: document.location.pathname,
+          //   protocol: document.location.protocol,
+          //   referrer: document.referrer
+          // } );
+
+          // Pass hardcoded values for testing
+          // postMessage( 'roo:pageChanged', {
+          //   host:     'mysite.dev',
+          //   pathname: '/',
+          //   protocol: 'http:',
+          //   referrer: ''
+          // } );
+
+          // Pass identity and any custom properties
+          postMessage( 'roo:identify', 'msimmons@qualaroo.com' );
+          postMessage( 'roo:set', {
+            contractType : 'member',
+            anotherProp  : 'value'
+          } );
+
+          // Dev only - skip time delays
+          postMessage( 'roo:skipStartTimers' );
+
+          // EXAMPLE: Show survey by ID
+          postMessage( 'roo:showSurvey', '189417', true );
+
+          break;
+
+        // EXAMPLE: When a survey is shown automatically minimize it
+        // case 'roo:event:show':
+        //   postMessage( 'roo:minimizeSurvey' );
+        //   break;
+
+        // EXAMPLE: Handler when Qualaroo renders a screen
+        case 'roo:event:nodeRendered':
+          resizeIframe( args[ 2 ], args[ 3 ] );
+          break;
+
+        // EXAMPLE: Handler when Qualaroo closes
+        case 'roo:event:close':
+          closeIframe();
+          break;
+      }
+
+    }, false );
+  </script>
+</body>
+</html>
